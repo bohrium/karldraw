@@ -5,10 +5,11 @@
     to use:
 '''
 
+from PIL import Image, ImageDraw, ImageFont
 from skimage.draw import circle, circle_perimeter_aa, line_aa, rectangle
-import sys
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~  0. rendering primitives  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,6 +39,25 @@ def draw_disk(img, center, radius=7, color=black, fillcolor=None):
     rr, cc, val = circle_perimeter_aa(row, col, radius)
     img[rr, cc, :] = np.minimum(img[rr, cc, :], 1.0 - np.expand_dims(val, 1) * (1.0 - color)[0])
 
+texts = []
+def queue_text(center, text, color=black, pixels_per_char=5, fontsize=20):
+    global texts
+    texts.append([center, text, color, pixels_per_char, fontsize])
+
+def discharge_all_texts():
+    global texts
+    for center, text, color, pixels_per_char, fontsize in texts: 
+        text_width = (3.0/4) * fontsize * max(map(len, text.split('\n')))
+        text_height = (6.0/5) * fontsize * len(text.split('\n'))
+        row, col = center
+        draw.text(
+            (col-text_width/2.0, row-text_height/2.0),
+            text,
+            font = ImageFont.truetype('Pillow/Tests/fonts/DejaVuSans.ttf', fontsize),
+            fill = tuple(list(map(int, 255*color[0,0]))+[255]),
+            align='center',
+        )
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~~~~~  1. coordinate system  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -64,14 +84,20 @@ def draw_example_scene():
     embed = make_converter(height, width, xmin, xmax, ymin, ymax)
     assert(float(height)/width==float(ymax-ymin)/(xmax-xmin))
 
-    vv = 0.2 * np.array([1.0, 0.0])
-    ww = 0.2 * np.array([(1.0+np.sqrt(5))/2, 1.0])
+    phi  = (1.0+np.sqrt(5))/2
+    phi_ = (1.0-np.sqrt(5))/2
+    vv = 0.3 * np.array([1.0, 0.0])
+    ww = 0.3 * np.array([phi_, 0.5])
     oo = np.array([0.7, 0.0])
-    m = np.array([[+1,0], [-0.1, +1]]) 
+    i = np.array([[+1,0], [0, +1]]) 
+    m = np.array([[+1,0], [phi/2, +1]]) 
 
     #---------  2.1. drawing  -------------------------------------------------
 
-    for o, v, w in ((0*oo, vv, ww), (-oo, np.matmul(m,vv), np.matmul(m,ww))):
+    for name, o, v, w in (
+            ('A', -oo, vv, ww),
+            ('B', 0.5*oo, np.matmul(m,vv), np.matmul(m,ww))
+        ):
         a = embed(o + 0*v + 0*w) 
         b = embed(o + 1*v + 0*w)
         c = embed(o + 2*v + 0*w)
@@ -84,12 +110,15 @@ def draw_example_scene():
         for p,q in ((a,b), (b,c), (c,d), (d,e), (e, f), (f,a)):
             draw_line(img, p, q)
 
-        draw_disk(img, a, radius=4, fillcolor=black)
-        draw_disk(img, b, radius=6, fillcolor=white)
-        draw_disk(img, c, radius=4, fillcolor=black)
-        draw_disk(img, d, radius=4, fillcolor=white)
-        draw_disk(img, e, radius=6, fillcolor=black)
-        draw_disk(img, f, radius=4, fillcolor=white)
+        draw_disk(img, a, radius=3, fillcolor=black)
+        draw_disk(img, b, radius=5, fillcolor=white)
+        draw_disk(img, c, radius=3, fillcolor=black)
+        draw_disk(img, d, radius=3, fillcolor=white)
+        draw_disk(img, e, radius=5, fillcolor=black)
+        draw_disk(img, f, radius=3, fillcolor=white)
+
+        cc = np.mean([a,b,c,d,e,f], axis=0)
+        queue_text(cc, name)
 
     return img
         
@@ -102,3 +131,7 @@ if __name__ == '__main__':
     img = draw_example_scene()
     plt.imsave(filename, img)
 
+    img = Image.open(filename)
+    draw = ImageDraw.Draw(img)
+    discharge_all_texts()
+    img.save(filename)
