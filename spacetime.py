@@ -47,7 +47,7 @@ def queue_text(center, text, color=black, pixels_per_char=5, fontsize=20):
 def discharge_all_texts():
     global texts
     for center, text, color, pixels_per_char, fontsize in texts: 
-        text_width = (3.0/4) * fontsize * max(map(len, text.split('\n')))
+        text_width = (1.0/2) * fontsize * max(map(len, text.split('\n')))
         text_height = (6.0/5) * fontsize * len(text.split('\n'))
         row, col = center
         draw.text(
@@ -98,19 +98,19 @@ def draw_example_scene():
             ('A', -oo, vv, ww),
             ('B', 0.5*oo, np.matmul(m,vv), np.matmul(m,ww))
         ):
-        a = embed(o + 0*v + 0*w) 
-        b = embed(o + 1*v + 0*w)
-        c = embed(o + 2*v + 0*w)
-        d = embed(o + 2*v + 1*w)
-        e = embed(o + 1*v + 1*w)
-        f = embed(o + 0*v + 1*w)
+        a = embed(o + 0*v + 1*w)
+        b = embed(o + 0*v + 0*w) 
+        c = embed(o + 1*v + 0*w)
+        d = embed(o + 2*v + 0*w)
+        e = embed(o + 2*v + 1*w)
+        f = embed(o + 1*v + 1*w)
 
         # note that we draw lines before disks.  this way, the disk interiors will
         # paint over the lines' tips
         for p,q in ((a,b), (b,c), (c,d), (d,e), (e, f), (f,a)):
             draw_line(img, p, q)
 
-        draw_disk(img, a, radius=3, fillcolor=black)
+        draw_disk(img, a, radius=3, fillcolor=red, color=red)
         draw_disk(img, b, radius=5, fillcolor=white)
         draw_disk(img, c, radius=3, fillcolor=black)
         draw_disk(img, d, radius=3, fillcolor=white)
@@ -120,6 +120,7 @@ def draw_example_scene():
         cc = np.mean([a,b,c,d,e,f], axis=0)
         queue_text(cc, name)
 
+    queue_text(embed([0.0, -0.4]), 'two parallelograms related\nby a vertical shear')
     return img
         
 if __name__ == '__main__':
